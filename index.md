@@ -55,8 +55,8 @@ Kubernetes, eBPF에 관심이 많습니다.
 
 ## 🔗 Links
 
-- GitHub: https://github.com/taehwanyang
-- LinkedIn: https://www.linkedin.com/in/태환-양-7289a224b
+- GitHub: [taehwanyang](https://github.com/taehwanyang)
+- LinkedIn: [양태환](https://www.linkedin.com/in/태환-양-7289a224b)
 
 ---
 
