@@ -50,6 +50,7 @@ Kubernetes, eBPF에 관심이 많습니다.
 ## ✍️ Recent Posts
 
 👉 최신 글은 아래에서 확인하세요.
+- [ebpf로 HPA 구현해보기](https://taehwanyang.github.io/ebpf-custom-hpa)
 
 ---
 
