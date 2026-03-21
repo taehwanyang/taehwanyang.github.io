@@ -4,38 +4,12 @@ date: 2026-03-20
 ---
 
 ## 프로젝트 소개
-  - 이 프로젝트는 eBPF로 IP 패킷을 조사해서 특정 Limit을 초과한 파드의 트래픽을 차단하는 Pod Blocker라는 프로그램을 구현합니다.
+  - eBPF는 리눅스 시스템 프로그래밍 분야에서 각광받고 있는 기술로 이를 활용하면 클라우드 운영에서 Observability, Security 등에서 다양한 기능을 구현할 수 있습니다.
+  - 이 프로젝트는 eBPF로 TCP SYN 패킷을 카운트하여 제한 조건을 초과한 파드 사이의 트래픽을 차단하는 Pod Blocker라는 프로그램을 구현합니다.
+  - auth-attacker는 keep-alive를 끈 채 대규모 HTTP 요청을 보냅니다. 이를 통해 TCP SYN flooding 공격을 비슷하게 구현할 수 있습니다.
+  - 커널모드에서 동작하는 eBPF 프로그램은 (src-ip, dst-ip)의 SYN 요청 개수를 카운트하고 조건에 따라 패킷을 드롭합니다. 
+    - count_conn_and_drop.c
+  - 유저모드에서 동작하는 Go 프로그램은 패킷 드롭을 트리거하는 제한 조건을 커널모드로 전달하고 tc hook을 bridge 인터페이스에 추가합니다.
+    - create_tc_hook_and_show_drop_log.go
 
-## connection_counter.c
-### 동작 흐름
 
-패킷이 들어오면:
-  1. IPv4/TCP인지 확인
-  2. SYN && !ACK 인지 확인
-  3. dst_ip가 watch_dst_ips에 있는지 확인
-  4. config_map에서 윈도우/임계치 읽음
-  5. (dst_ip, src_ip) 상태 조회
-  6. 윈도우가 지났으면 reset
-  7. 아니면 count 증가
-  8. count가 limit 초과면
-  9. drop_events에 이벤트 기록
-  10. TC_ACT_SHOT 반환
-  11. 아니면 TC_ACT_OK
-
-### XDP가 아니라 TC인 이유
-  1. XDP (eth0에 attach) 
-    XDP는 네트워크 스택 이전 네트워크 인터페이스에서 바로 패킷을 가로챈다.
-  2. tc (Traffic Control)
-    Pod의 네트워크 스택에 위치(가장 가깝다.)
-
-  K3S의 경우
-    Flannel(VXLAN)
-      [Outer IP: Node → Node]
-        [UDP: VXLAN]
-          [Inner IP: Pod → Pod]
-    VXLAN은 overlay network인데 Pod IP 패킷은 그대로 두고 Node IP 헤더로 감싸는 encapsulation
-    XDP의 경우 Pod가 다른 노드의 Pod로 패킷을 전달하면 노드 IP만 보고 Pod IP는 직접 파싱해야 한다.
-    tc의 경우
-      incoming VXLAN: NIC -> XDP -> (VXLAN decap) -> tc ingress -> Pod
-      outgoing VXLAN: Pod -> tc egress -> (VXLAN encapsulation) -> NIC
-      두 경우 모두 Pod IP가 보인다.
