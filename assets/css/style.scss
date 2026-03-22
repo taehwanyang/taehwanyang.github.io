@@ -3,33 +3,171 @@
 
 @import "{{ site.theme }}";
 
-/* 🔥 전체 레이아웃 확장 */
-.wrapper {
-  max-width: 1200px;
-  width: 95%;
-  margin: 0 auto;
+/* 전체 페이지 기본 */
+body {
+  background: #ffffff;
+  color: #242424;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 18px;
+  line-height: 1.8;
+  margin: 0;
+  padding: 0;
 }
 
-/* 🔥 왼쪽 사이드 줄이기 */
+/* 왼쪽 사이드바 제거 */
 header {
-  width: 200px;
+  display: none !important;
 }
 
-/* 🔥 오른쪽 본문 확장 */
+/* wrapper를 중앙 정렬용 컨테이너로 재구성 */
+.wrapper {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* 본문만 가운데 오게 */
 section {
-  width: calc(100% - 220px);
+  float: none !important;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 24px 80px 24px;
+  border: 0;
 }
 
-/* 🔥 가독성 개선 */
-section {
-  font-size: 16px;
-  line-height: 1.7;
+/* 제목 */
+h1, h2, h3, h4, h5, h6 {
+  color: #111111;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.7em;
 }
 
-/* 🔥 모바일 대응 유지 */
-@media print, screen and (max-width: 960px) {
-  header,
+h1 {
+  font-size: 2.4rem;
+  margin-top: 0.4em;
+}
+
+h2 {
+  font-size: 1.8rem;
+}
+
+h3 {
+  font-size: 1.35rem;
+}
+
+/* 본문 문단 */
+p, li {
+  color: #242424;
+  font-size: 1.05rem;
+}
+
+/* 링크 */
+a {
+  color: #1a8917;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* 리스트 */
+ul, ol {
+  padding-left: 1.4em;
+}
+
+/* 코드 */
+code {
+  font-family: SFMono-Regular, Menlo, Consolas, Monaco, monospace;
+  font-size: 0.9em;
+  background: #f6f8fa;
+  padding: 0.15em 0.35em;
+  border-radius: 6px;
+}
+
+pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 10px;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+pre code {
+  background: transparent;
+  padding: 0;
+}
+
+/* 인용문 */
+blockquote {
+  margin: 1.5em 0;
+  padding: 0.2em 1em;
+  border-left: 4px solid #e0e0e0;
+  color: #555555;
+  background: #fafafa;
+}
+
+/* 표 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  font-size: 0.95rem;
+}
+
+th, td {
+  border: 1px solid #eaeaea;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+th {
+  background: #f8f8f8;
+}
+
+/* 이미지 */
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 2em auto;
+  border-radius: 8px;
+}
+
+/* 날짜/메타 정보가 있다면 조금 옅게 */
+small, .post-meta {
+  color: #6b6b6b;
+}
+
+/* footer 문구도 중앙 정렬 */
+footer {
+  float: none !important;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 24px 40px 24px;
+  color: #6b6b6b;
+}
+
+/* 모바일 */
+@media print, screen and (max-width: 768px) {
+  body {
+    font-size: 17px;
+  }
+
   section {
-    width: auto;
+    padding: 28px 20px 56px 20px;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.55rem;
   }
 }
