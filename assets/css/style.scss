@@ -27,14 +27,14 @@ header {
   padding: 0;
 }
 
-/* 본문만 가운데 오게 */
 section {
   float: none !important;
-  width: 100%;
-  max-width: 760px;
+  width: min(1100px, calc(100vw - 48px));
+  max-width: 100%;
   margin: 0 auto;
-  padding: 48px 24px 80px 24px;
+  padding: 48px 0 80px 0;
   border: 0;
+  box-sizing: border-box;
 }
 
 /* 제목 */
@@ -143,24 +143,24 @@ small, .post-meta {
   color: #6b6b6b;
 }
 
-/* footer 문구도 중앙 정렬 */
 footer {
   float: none !important;
-  width: 100%;
-  max-width: 760px;
+  width: min(1100px, calc(100vw - 48px));
+  max-width: 100%;
   margin: 0 auto;
-  padding: 0 24px 40px 24px;
+  padding: 0 0 40px 0;
   color: #6b6b6b;
+  box-sizing: border-box;
 }
 
-/* 모바일 */
 @media print, screen and (max-width: 768px) {
   body {
     font-size: 17px;
   }
 
   section {
-    padding: 28px 20px 56px 20px;
+    width: calc(100vw - 32px);
+    padding: 28px 0 56px 0;
   }
 
   h1 {
