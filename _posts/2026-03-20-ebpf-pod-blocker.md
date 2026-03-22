@@ -161,13 +161,13 @@ struct {
 SEC("tc")
 int count_syn_and_drop(struct __sk_buff *skb) 
 {
-    ...
+    
     //  패킷을 IP 헤더와 TCP 해더로 파싱
     if (parse_ipv4_tcp(skb, &ip, &tcp) < 0) {
-    ...
+    
     // 요청 횟수를 기록 중인 맵을 가져온다
     state = bpf_map_lookup_elem(&target_src_states, &pair_key);
-    ...
+    
     // 리밋을 넘지 않았다면 횟수에 1을 더한다.
     state->count += 1;
     // 요청 횟수가 최대 가능 요청 횟수를 초과하면 패킷을 드롭한다.
@@ -185,7 +185,7 @@ int count_syn_and_drop(struct __sk_buff *skb)
         emit_drop_event(now_ns, target_ip, src_ip, current_count, max_count);
         return TC_ACT_SHOT;
     }
-    ...
+    
     return TC_ACT_OK;
 }
 ```
@@ -195,6 +195,114 @@ int count_syn_and_drop(struct __sk_buff *skb)
   - eBPF 프로그램은 호스트에서 실행되므로 authorization server 파드 내에 있는 pod-side veth는 보이지 않는다.
   - 그러므로 authorization server의 host-side veth에 tc egress로 필터를 추가한다.
   - 공격자 파드 -> bridge(cni0) -> host-side veth -> (tc hook 위치, host-side veth에서는 패킷이 나가는 경우이므로 tc egress) -> pod-side veth
+  - 먼저 정책(어떤 파드에 몇분 동안 커넥션 요청이 몇번 이상 들어오면 패킷을 드롭한다.)을 설정한다.
 
+```go
+type Agent struct {
+	objs     count_conn_and_dropObjects
+	tcClient *tc.Tc
+	watchSet map[uint32]struct{}
+	ifIndex  uint32
+	ifName   string
+	tcHandle uint32
+}
 
+func CreateTCHookAndShowDropLog(ctx context.Context) error {
+  
+  // app=authorization-server 레이블을 가진 파드를 가져온다.
+  pods := PodsByLabel()
+  
+  if err := agent.applyRateLimitConfig(Window, MaxCount); err != nil {
+
+  if err := agent.setWatchIPs(podIPs); err != nil {
+
+```
+
+  - authorization server 파드의 host-side veth를 가져와야 하는데 아래 명령을 Go 코드로 구현하면 된다.
+
+```bash
+kubectl exec auth-test-authorization-server-7ddc9bcc8d-kqd87 -- cat /sys/class/net/eth0/iflink
+12
+ip link
+# veth54c1b554가 authorization server 파드의 host-side veth이다.
+12: veth54c1b554@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1450 qdisc noqueue master cni0 state UP mode DEFAULT group default qlen 1000
+    link/ether 42:33:3d:19:04:6d brd ff:ff:ff:ff:ff:ff link-netns cni-4f918ed8-3dcf-7039-ca38-3602426ed6cc
+```
+  - authorization server의 host-side veth를 가져온 후 clsact qdisc를 붙이고 tc hook을 추가한다.
+
+```go
+func CreateTCHookAndShowDropLog(ctx context.Context) error {
+
+  hostVeth, err := hostVethFromPod(pods)
+
+  iface, err := net.InterfaceByName(hostVeth)
+
+  tcClient, err := tc.Open(&tc.Config{})
+
+  if err := resetClsact(agent.tcClient, agent.ifIndex); err != nil {
+
+  if err := attachBPFProgram(
+		agent.tcClient,
+		agent.ifIndex,
+		agent.objs.CountSynAndDrop.FD(),
+		"count_syn_and_drop",
+		agent.tcHandle,
+	); err != nil {
+
+}
+
+func attachBPFProgram(tcnl *tc.Tc, ifindex uint32, progFD int, progName string, handle uint32) error {
+	fd := uint32(progFD)
+	flags := uint32(0x1) // direct-action
+
+	filter := tc.Object{
+		Msg: tc.Msg{
+			Family:  unix.AF_UNSPEC,
+      // authorization server의 host-side veth
+			Ifindex: ifindex,
+			Handle:  handle,
+      // tc hook을 host-side veth의 tc egress로 걸어야 한다.
+			Parent:  core.BuildHandle(tc.HandleRoot, tc.HandleMinEgress),
+			Info:    core.FilterInfo(0, unix.ETH_P_ALL),
+		},
+		Attribute: tc.Attribute{
+			Kind: "bpf",
+			BPF: &tc.Bpf{
+				FD:    &fd,
+				Name:  &progName,
+				Flags: &flags,
+			},
+		},
+	}
+	return tcnl.Filter().Add(&filter)
+}
+```
+
+  - 커널모드에서 패킷 드롭이 발생하면 이벤트를 가져와 로그로 출력한다.
+
+```go
+func CreateTCHookAndShowDropLog(ctx context.Context) error {
+
+  return runDropEventLoop(ctx, reader)
+}
+
+func runDropEventLoop(ctx context.Context, reader *ringbuf.Reader) error {
+  for {
+		record, err := reader.Read()
+
+    var evt dropEvent
+		if err := binary.Read(bytes.NewReader(record.RawSample), binary.LittleEndian, &evt); err != nil {
+
+    log.Printf(
+			"[DROP] recv_time=%s src=%s dst=%s count=%d limit=%d kernel_ts_ns=%d",
+			time.Now().Format(time.RFC3339),
+			u32ToIP(evt.SrcIp),
+			u32ToIP(evt.TargetIp),
+			evt.Count,
+			evt.MaxCount,
+			evt.TsNs,
+		)
+  }
+}
+``` 
 
