@@ -82,8 +82,108 @@ func sendRequest(client *http.Client) error {
     - 패킷이 나갈 때 로직을 트리거하려면 특정 인터페이스에 clsact qdisc(queueing discipline)를 붙이고 여기에 tc egress로 필터를 추가
   - 공격자 파드가 authorization server 파드로 대규모 커넥션 요청을 하면 이는 DDoS에 해당하므로 차단해야 하는 상황
   - 보호하고자 하는 파드와 최대 요청 가능 횟수는 eBPF 유저모드에서 전달받는다.
+```C
+// target_ip가 보호하고자 하는 파드의 IP이다.
+struct ip_pair_key {
+    __u32 target_ip;
+    __u32 src_ip;
+};
 
+// window_ns는 요청을 카운트하는 시간
+// max_count는 최대 가능 요청 횟수
+// 예를 들어, src 파드에서 target 파드로 1분에 100번 커넥션 요청이 들어오면 패킷을 드롭한다는 정책이 된다.
+struct rl_config {
+    __u64 window_ns;
+    __u64 max_count;
+    __u32 pad; 
+};
 
+// 설정을 저장할 자료구조
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 1);
+    __type(key, __u32);
+    __type(value, struct rl_config);
+} config_map SEC(".maps");
+
+// 유저모드에서 전달받은 보호할 파드 목록
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 4096);
+    __type(key, __u32);
+    __type(value, __u8);
+} watch_dst_ips SEC(".maps");
+```
+  - 패킷이 들어올 때마다 (src-ip, dst-ip)를 기준으로 요청 횟수를 저장할 구조체와 패킷 드롭 정책이 적용되었을 때 이 이벤트를 유저모드로 전달할 자료구조가 필요하다.
+```C
+struct rl_state {
+    struct bpf_spin_lock lock;
+    __u64 window_start_ns;
+    __u32 count;
+    __u32 pad;
+};
+
+struct drop_event {
+    __u64 ts_ns;
+    __u32 target_ip;
+    __u32 src_ip;
+    __u32 count;
+    __u32 max_count;
+};
+
+// (target_ip, src_ip)별 rate limit 상태 저장
+// key = {target_ip, src_ip}
+// value = rl_state
+// 요청 횟수를 저장하기 위한 자료구조
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 65536);
+    __type(key, struct ip_pair_key);
+    __type(value, struct rl_state);
+} target_src_states SEC(".maps");
+
+// 패킷 드롭 이벤트를 유저모드로 전달하기 위한 링 버퍼
+struct {
+    __uint(type, BPF_MAP_TYPE_RINGBUF);
+    __uint(max_entries, 1 << 24); // 16MiB
+} drop_events SEC(".maps");
+``` 
+  - 자료구조를 정했으니 로직을 구현한다. 
+    - (src->ip, dst->ip)를 키로 특정 시간동안 최대 가능 요청 횟수를 넘으면 이후의 모든 패킷을 드롭한다.
+    - TC_ACT_OK : 패킷을 네트워크 스택에 넘긴다.
+    - TC_ACT_SHOT : 패킷을 드롭한다.
+```C
+SEC("tc")
+int count_syn_and_drop(struct __sk_buff *skb)
+{
+    ...
+    //  패킷을 IP 헤더와 TCP 해더로 파싱
+    if (parse_ipv4_tcp(skb, &ip, &tcp) < 0) {
+    ...
+    // 요청 횟수를 기록 중인 맵을 가져온다
+    state = bpf_map_lookup_elem(&target_src_states, &pair_key);
+    ...
+    // 리밋을 넘지 않았다면 횟수에 1을 더한다.
+    state->count += 1;
+    // 요청 횟수가 최대 가능 요청 횟수를 초과하면 패킷을 드롭한다.
+    if (state->count > cfg->max_count) {
+        __u32 current_count = state->count;
+        __u32 max_count = cfg->max_count;
+        __u32 target_ip = pair_key.target_ip;
+        __u32 src_ip = pair_key.src_ip;
+
+        bpf_spin_unlock(&state->lock);
+
+        bpf_printk("drop target=%x src=%x count=%u\n",
+               target_ip, src_ip, current_count);
+
+        emit_drop_event(now_ns, target_ip, src_ip, current_count, max_count);
+        return TC_ACT_SHOT;
+    }
+    ...
+    return TC_ACT_OK;
+}
+```
 
 ### eBPF 유저모드
   - 패킷을 관찰하다가 최대 요청 횟수를 넘기면 DROP 정책을 실행할 tc hook 위치를 정해야 한다.
