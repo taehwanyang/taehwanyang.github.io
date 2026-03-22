@@ -38,19 +38,17 @@ date: 2026-03-20
     - 쿠버네티스에 파드가 생성되면 새로운 namespace(리눅스 커널의 네임스페이스, 리소스에 대한 VIEW를 제공, 예를 들어 어떤 네트워크 인터페이스가 해당 네임스페이스에서만 보인다 등)와 cgroup(CPU나 메모리 같은 자원을 격리한다.)를 생성한다.
     - 호스트와 파드 사이을 잇는 veth pair(veth는 virtual ethernet)가 생성되는데 하나는 host-side veth로 호스트 네임스페이스에 생기고 다른 하나는 pod-side veth로 파드 네임스페이스에 생긴다.
     - 개발환경인 k3s에는 노드 간 통신에서는 VXLAN(overlay network, 파드 IP를 그대로 가친채 노드 IP 헤더로 감싸는 encapsulation)으로, 같은 노드 내의 파드 간 통신에는 bridge로 구성된다.
-
-```sh
+    - 호스트에서는 host-side veth는 호스트에서만 보이고 pod-side veth는 파드 내부에서만 보인다.
+    - auth-attacker 파드에서 authorization server 파드로 요청을 보내면 패킷은 아래와 같이 흐른다.
+    - pod-side veth (auth-attacker namespace) -> host-side veth of auth-attacker (host) -> bridge (host) -> host-side veth of authorization-server (host) -> pod-side veth (authorization-server namespace)
+    - bridge는 virtual L2 스위치로 노드 내 파드들을 묶는 역할을 한다. 
+```bash
 ip link
 3: flannel.1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1450 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
     link/ether 1a:fc:43:c1:9c:b4 brd ff:ff:ff:ff:ff:ff
 4: cni0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1450 qdisc noqueue state UP mode DEFAULT group default qlen 1000
     link/ether 4a:68:33:43:05:84 brd ff:ff:ff:ff:ff:ff
 ```
-
-    - 호스트에서는 host-side veth는 호스트에서만 보이고 pod-side veth는 파드 내부에서만 보인다.
-    - auth-attacker 파드에서 authorization server 파드로 요청을 보내면 패킷은 아래와 같이 흐른다.
-    - pod-side veth (auth-attacker namespace) -> host-side veth of auth-attacker (host) -> bridge (host) -> host-side veth of authorization-server (host) -> pod-side veth (authorization-server namespace)
-    - bridge는 virtual L2 스위치로 노드 내 파드들을 묶는 역할을 한다. 
 
 ## 구현 상세
 ### auth-attacker
