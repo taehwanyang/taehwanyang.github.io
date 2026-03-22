@@ -57,8 +57,7 @@ ip link
   - authorization server로 HTTP 요청을 보내는데 keep alive를 비활성화한다.
   - 이렇게 하면 매 요청마다 커넥션을 다시 맺기 때문에 SYN flooding처럼 L4 레이어에 대한 공격을 모의할 수 있다.
 
-```Go
-  ...
+```go
   transport := &http.Transport{
 		DisableKeepAlives: true,
 	}
@@ -66,13 +65,13 @@ ip link
 		Timeout:   5 * time.Second,
 		Transport: transport,
 	}
-  ...
+  
 func sendRequest(client *http.Client) error {
-  ...
+  
 	req, err := http.NewRequest(http.MethodPost, tokenURL, bytes.NewBufferString(form.Encode()))
-  ...
+  
 	resp, err := client.Do(req)
-	...
+	
 }
 ```
 
@@ -86,7 +85,7 @@ func sendRequest(client *http.Client) error {
   - 공격자 파드가 authorization server 파드로 대규모 커넥션 요청을 하면 이는 DDoS에 해당하므로 차단해야 하는 상황
   - 보호하고자 하는 파드와 최대 요청 가능 횟수는 eBPF 유저모드에서 전달받는다.
 
-```C
+```c
 // target_ip가 보호하고자 하는 파드의 IP이다.
 struct ip_pair_key {
     __u32 target_ip;
@@ -121,7 +120,7 @@ struct {
 
   - 패킷이 들어올 때마다 (src-ip, dst-ip)를 기준으로 요청 횟수를 저장할 구조체와 패킷 드롭 정책이 적용되었을 때 이 이벤트를 유저모드로 전달할 자료구조가 필요하다.
 
-```C
+```c
 struct rl_state {
     struct bpf_spin_lock lock;
     __u64 window_start_ns;
@@ -160,9 +159,9 @@ struct {
     - TC_ACT_OK : 패킷을 네트워크 스택에 넘긴다.
     - TC_ACT_SHOT : 패킷을 드롭한다.
 
-```C
+```c
 SEC("tc")
-int count_syn_and_drop(struct __sk_buff *skb)
+int count_syn_and_drop(struct __sk_buff *skb) 
 {
     ...
     //  패킷을 IP 헤더와 TCP 해더로 파싱
