@@ -38,6 +38,7 @@ date: 2026-03-20
     - 쿠버네티스에 파드가 생성되면 새로운 namespace(리눅스 커널의 네임스페이스, 리소스에 대한 VIEW를 제공, 예를 들어 어떤 네트워크 인터페이스가 해당 네임스페이스에서만 보인다 등)와 cgroup(CPU나 메모리 같은 자원을 격리한다.)를 생성한다.
     - 호스트와 파드 사이을 잇는 veth pair(veth는 virtual ethernet)가 생성되는데 하나는 host-side veth로 호스트 네임스페이스에 생기고 다른 하나는 pod-side veth로 파드 네임스페이스에 생긴다.
     - 개발환경인 k3s에는 노드 간 통신에서는 VXLAN(overlay network, 파드 IP를 그대로 가친채 노드 IP 헤더로 감싸는 encapsulation)으로, 같은 노드 내의 파드 간 통신에는 bridge로 구성된다.
+
 ```sh
 ip link
 3: flannel.1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1450 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
@@ -45,6 +46,7 @@ ip link
 4: cni0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1450 qdisc noqueue state UP mode DEFAULT group default qlen 1000
     link/ether 4a:68:33:43:05:84 brd ff:ff:ff:ff:ff:ff
 ```
+
     - 호스트에서는 host-side veth는 호스트에서만 보이고 pod-side veth는 파드 내부에서만 보인다.
     - auth-attacker 파드에서 authorization server 파드로 요청을 보내면 패킷은 아래와 같이 흐른다.
     - pod-side veth (auth-attacker namespace) -> host-side veth of auth-attacker (host) -> bridge (host) -> host-side veth of authorization-server (host) -> pod-side veth (authorization-server namespace)
@@ -54,8 +56,9 @@ ip link
 ### auth-attacker
   - authorization server로 HTTP 요청을 보내는데 keep alive를 비활성화한다.
   - 이렇게 하면 매 요청마다 커넥션을 다시 맺기 때문에 SYN flooding처럼 L4 레이어에 대한 공격을 모의할 수 있다.
+
 ```Go
-...
+  ...
   transport := &http.Transport{
 		DisableKeepAlives: true,
 	}
@@ -63,7 +66,7 @@ ip link
 		Timeout:   5 * time.Second,
 		Transport: transport,
 	}
-...
+  ...
 func sendRequest(client *http.Client) error {
   ...
 	req, err := http.NewRequest(http.MethodPost, tokenURL, bytes.NewBufferString(form.Encode()))
@@ -82,6 +85,7 @@ func sendRequest(client *http.Client) error {
     - 패킷이 나갈 때 로직을 트리거하려면 특정 인터페이스에 clsact qdisc(queueing discipline)를 붙이고 여기에 tc egress로 필터를 추가
   - 공격자 파드가 authorization server 파드로 대규모 커넥션 요청을 하면 이는 DDoS에 해당하므로 차단해야 하는 상황
   - 보호하고자 하는 파드와 최대 요청 가능 횟수는 eBPF 유저모드에서 전달받는다.
+
 ```C
 // target_ip가 보호하고자 하는 파드의 IP이다.
 struct ip_pair_key {
@@ -114,7 +118,9 @@ struct {
     __type(value, __u8);
 } watch_dst_ips SEC(".maps");
 ```
+
   - 패킷이 들어올 때마다 (src-ip, dst-ip)를 기준으로 요청 횟수를 저장할 구조체와 패킷 드롭 정책이 적용되었을 때 이 이벤트를 유저모드로 전달할 자료구조가 필요하다.
+
 ```C
 struct rl_state {
     struct bpf_spin_lock lock;
@@ -148,10 +154,12 @@ struct {
     __uint(max_entries, 1 << 24); // 16MiB
 } drop_events SEC(".maps");
 ``` 
+
   - 자료구조를 정했으니 로직을 구현한다. 
     - (src->ip, dst->ip)를 키로 특정 시간동안 최대 가능 요청 횟수를 넘으면 이후의 모든 패킷을 드롭한다.
     - TC_ACT_OK : 패킷을 네트워크 스택에 넘긴다.
     - TC_ACT_SHOT : 패킷을 드롭한다.
+
 ```C
 SEC("tc")
 int count_syn_and_drop(struct __sk_buff *skb)
