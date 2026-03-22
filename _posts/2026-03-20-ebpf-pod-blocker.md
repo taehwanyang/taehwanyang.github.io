@@ -12,6 +12,9 @@ date: 2026-03-20
   - 유저모드에서 동작하는 Go 프로그램은 패킷 드롭을 트리거하는 제한 조건을 커널모드로 전달하고 tc hook을 보호하려는 파드의 호스트 veth 인터페이스에 추가한다.
     - create_tc_hook_and_show_drop_log.go
 
+## 깃헙 레포지토리
+  - [eBPF Pod Blocker](https://github.com/taehwanyang/ebpf-pod-blocker)
+
 ## 개발 스택
   - C : libbpf 
   - Go : ebpf-go
@@ -56,20 +59,45 @@ ip link
   - 이렇게 하면 매 요청마다 커넥션을 다시 맺기 때문에 SYN flooding처럼 L4 레이어에 대한 공격을 모의할 수 있다.
 
 ```go
+func main() {
+  // ...
   transport := &http.Transport{
 		DisableKeepAlives: true,
 	}
+
 	client := &http.Client{
 		Timeout:   5 * time.Second,
 		Transport: transport,
 	}
-  
+
+  var wg sync.WaitGroup
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go worker(&wg, client, jobs, &success, &failure)
+	}
+  // ...
+}
+
+func worker(
+  wg *sync.WaitGroup,
+	client *http.Client,
+	jobs <-chan int,
+	success *int64,
+	failure *int64,
+) {
+  for jobID := range jobs {
+		// ...
+		err := sendRequest(client)
+    // ...
+  }
+}
+
 func sendRequest(client *http.Client) error {
-  
+  // ...  
 	req, err := http.NewRequest(http.MethodPost, tokenURL, bytes.NewBufferString(form.Encode()))
-  
+  // ...
 	resp, err := client.Do(req)
-	
+	// ...
 }
 ```
 
@@ -161,13 +189,18 @@ struct {
 SEC("tc")
 int count_syn_and_drop(struct __sk_buff *skb) 
 {
-    
+    // ...
     //  패킷을 IP 헤더와 TCP 해더로 파싱
     if (parse_ipv4_tcp(skb, &ip, &tcp) < 0) {
-    
+        return TC_ACT_OK;
+    }
+    // ...
+
     // 요청 횟수를 기록 중인 맵을 가져온다
     state = bpf_map_lookup_elem(&target_src_states, &pair_key);
     
+    // ...
+
     // 리밋을 넘지 않았다면 횟수에 1을 더한다.
     state->count += 1;
     // 요청 횟수가 최대 가능 요청 횟수를 초과하면 패킷을 드롭한다.
@@ -185,6 +218,8 @@ int count_syn_and_drop(struct __sk_buff *skb)
         emit_drop_event(now_ns, target_ip, src_ip, current_count, max_count);
         return TC_ACT_SHOT;
     }
+
+    // ...
     
     return TC_ACT_OK;
 }
@@ -208,14 +243,23 @@ type Agent struct {
 }
 
 func CreateTCHookAndShowDropLog(ctx context.Context) error {
-  
+  // ...
+
   // app=authorization-server 레이블을 가진 파드를 가져온다.
   pods := PodsByLabel()
   
   if err := agent.applyRateLimitConfig(Window, MaxCount); err != nil {
+    // ...
+  }
+
+  // ...
 
   if err := agent.setWatchIPs(podIPs); err != nil {
+    // ...
+  }
 
+  // ...
+}
 ```
 
   - authorization server 파드의 host-side veth를 가져와야 하는데 아래 명령을 Go 코드로 구현하면 된다.
@@ -232,14 +276,25 @@ ip link
 
 ```go
 func CreateTCHookAndShowDropLog(ctx context.Context) error {
+  // ...
 
   hostVeth, err := hostVethFromPod(pods)
 
+  // ...
+  
   iface, err := net.InterfaceByName(hostVeth)
+
+  // ...
 
   tcClient, err := tc.Open(&tc.Config{})
 
+  // ...
+
   if err := resetClsact(agent.tcClient, agent.ifIndex); err != nil {
+    // ...
+  }
+
+  // ...
 
   if err := attachBPFProgram(
 		agent.tcClient,
@@ -248,6 +303,10 @@ func CreateTCHookAndShowDropLog(ctx context.Context) error {
 		"count_syn_and_drop",
 		agent.tcHandle,
 	); err != nil {
+    // ...
+  }
+
+  // ...
 
 }
 
@@ -283,15 +342,20 @@ func attachBPFProgram(tcnl *tc.Tc, ifindex uint32, progFD int, progName string, 
 ```go
 func CreateTCHookAndShowDropLog(ctx context.Context) error {
 
+  // ...
+
   return runDropEventLoop(ctx, reader)
 }
 
 func runDropEventLoop(ctx context.Context, reader *ringbuf.Reader) error {
   for {
 		record, err := reader.Read()
+    // ...
 
     var evt dropEvent
 		if err := binary.Read(bytes.NewReader(record.RawSample), binary.LittleEndian, &evt); err != nil {
+      // ...
+    }
 
     log.Printf(
 			"[DROP] recv_time=%s src=%s dst=%s count=%d limit=%d kernel_ts_ns=%d",
