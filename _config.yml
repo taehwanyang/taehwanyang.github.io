@@ -1,7 +1,7 @@
 theme: jekyll-theme-minimal
 
-title: 양태환 기술 블로그
-description: 쿠버네티스, eBPF, Java, Go, Python, 그리고 머신러닝에 대한 이야기
+title: Taehwan Dev Blog
+description: 쿠버네티스, eBPF, 그리고 머신러닝 이야기
 
 url: "https://taehwanyang.github.io"
 
