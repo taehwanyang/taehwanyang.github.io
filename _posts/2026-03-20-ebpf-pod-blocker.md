@@ -108,12 +108,12 @@ func sendRequest(client *http.Client) error {
     - skb(패킷 객체)가 생성되는 시점을 커널 네트워크 스택의 시작점으로 보면 tc ingress는 커널 네트워크 스택의 입구라고 할 수 있고 
     - 패킷이 L2, L3, L4를 거쳐 애플리케이션 레이어까지 올라갔다가 다시 L4, L3, L2를 타고 내려온 후 거치는 tc egress는 커널 네트워크 스택의 출구라고 할 수 있다.
     - eBPF로 tc hook을 tc ingress로 특정 인터페이스에 걸면 패킷이 네트워크 스택 입구(Ethernet 진입 전)에서 원하는 로직을 실행할 수 있다.
-    - 참고로, 파드에서 오는 패킷이 아니라 노드 밖에서 오는 패킷에 대해 XDP로 처리한다면 패킷이 메모리에 올라가지 전이므로 훨씬 더 빠르게 로직을 실행할 수 있다.
     - isovalent는 cillium을 구현할 때 XDP나 tc ingress를 이용해 구현했으므로 kubernetes가 겪을 수 있는 문제인 SNAT Port 고갈이나 conntrack 테이블 메모리 이슈를 해결할 수 있었다. 
     - 패킷이 들어올 때 로직을 트리거하려면 특정 인터페이스에 clsact qdisc(queueing discipline)를 붙이고 여기에 tc ingress로 필터를 추가
     - 패킷이 나갈 때 로직을 트리거하려면 특정 인터페이스에 clsact qdisc(queueing discipline)를 붙이고 여기에 tc egress로 필터를 추가
   - 공격자 파드가 authorization server 파드로 대규모 커넥션 요청을 하면 이는 DDoS에 해당하므로 차단해야 하는 상황
   - 보호하고자 하는 파드와 최대 요청 가능 횟수는 eBPF 유저모드에서 전달받는다.
+  - 참고로, 파드에서 오는 패킷이 아니라 노드 밖에서 오는 패킷에 대해 XDP로 처리한다면 패킷이 메모리에 올라가지 전이므로 훨씬 더 빠르게 로직을 실행할 수 있다.
 
 ```c
 // target_ip가 보호하고자 하는 파드의 IP이다.
