@@ -199,12 +199,9 @@ int count_syn_and_drop(struct __sk_buff *skb)
         return TC_ACT_OK;
     }
     // ...
-
     // 요청 횟수를 기록 중인 맵을 가져온다
     state = bpf_map_lookup_elem(&target_src_states, &pair_key);
-    
     // ...
-
     // 리밋을 넘지 않았다면 횟수에 1을 더한다.
     state->count += 1;
     // 요청 횟수가 최대 가능 요청 횟수를 초과하면 패킷을 드롭한다.
@@ -222,9 +219,7 @@ int count_syn_and_drop(struct __sk_buff *skb)
         emit_drop_event(now_ns, target_ip, src_ip, current_count, max_count);
         return TC_ACT_SHOT;
     }
-
-    // ...
-    
+    // ...    
     return TC_ACT_OK;
 }
 ```
@@ -248,20 +243,16 @@ type Agent struct {
 
 func CreateTCHookAndShowDropLog(ctx context.Context) error {
   // ...
-
   // app=authorization-server 레이블을 가진 파드를 가져온다.
   pods := PodsByLabel()
   
   if err := agent.applyRateLimitConfig(Window, MaxCount); err != nil {
     // ...
   }
-
   // ...
-
   if err := agent.setWatchIPs(podIPs); err != nil {
     // ...
   }
-
   // ...
 }
 ```
@@ -281,25 +272,16 @@ ip link
 ```go
 func CreateTCHookAndShowDropLog(ctx context.Context) error {
   // ...
-
   hostVeth, err := hostVethFromPod(pods)
-
   // ...
-  
   iface, err := net.InterfaceByName(hostVeth)
-
   // ...
-
   tcClient, err := tc.Open(&tc.Config{})
-
   // ...
-
   if err := resetClsact(agent.tcClient, agent.ifIndex); err != nil {
     // ...
   }
-
   // ...
-
   if err := attachBPFProgram(
 		agent.tcClient,
 		agent.ifIndex,
@@ -309,9 +291,7 @@ func CreateTCHookAndShowDropLog(ctx context.Context) error {
 	); err != nil {
     // ...
   }
-
   // ...
-
 }
 
 func attachBPFProgram(tcnl *tc.Tc, ifindex uint32, progFD int, progName string, handle uint32) error {
@@ -345,9 +325,7 @@ func attachBPFProgram(tcnl *tc.Tc, ifindex uint32, progFD int, progName string, 
 
 ```go
 func CreateTCHookAndShowDropLog(ctx context.Context) error {
-
   // ...
-
   return runDropEventLoop(ctx, reader)
 }
 
@@ -355,7 +333,6 @@ func runDropEventLoop(ctx context.Context, reader *ringbuf.Reader) error {
   for {
 		record, err := reader.Read()
     // ...
-
     var evt dropEvent
 		if err := binary.Read(bytes.NewReader(record.RawSample), binary.LittleEndian, &evt); err != nil {
       // ...
@@ -373,4 +350,3 @@ func runDropEventLoop(ctx context.Context, reader *ringbuf.Reader) error {
   }
 }
 ``` 
-
