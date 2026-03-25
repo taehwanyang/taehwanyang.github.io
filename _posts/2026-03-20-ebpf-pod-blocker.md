@@ -114,7 +114,7 @@ func sendRequest(client *http.Client) error {
   - 공격자 파드가 authorization server 파드로 대규모 커넥션 요청을 하면 이는 DDoS에 해당하므로 차단해야 하는 상황
   - 보호하고자 하는 파드와 최대 요청 가능 횟수는 eBPF 유저모드에서 전달받는다.
   - 참고로, 파드에서 오는 패킷이 아니라 노드 밖에서 오는 패킷이라면 XDP(eXpress Data Path)를 고려해볼 수 있는데 XDP는 패킷이 메모리에 올라가기 전이므로 속도가 매우 빠르다.
-  - 하지만, tc는 범용적이고 NetworkPolicy, ServiceLB, NAT 등 복잡한 기능을 구현하기 쉽지만 XDP는 구현 복잡도가 높아 DDoS 필터나 LB fast path 등 단순하지만 높은 성능이 필요한 경우에 주로 쓰인다.
+  - 하지만, tc는 커널 표준 패킷인 skb를 사용하므로 NetworkPolicy, ServiceLB, NAT 등 복잡한 기능을 구현하기 쉽지만 XDP는 NIC 드라이버에 의존적이며 구현 복잡도가 높고 디버깅이 어려워 특정 경우에만 사용할 수 있다.
 
 ```c
 // target_ip가 보호하고자 하는 파드의 IP이다.
