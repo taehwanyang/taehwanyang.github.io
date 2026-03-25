@@ -113,8 +113,8 @@ func sendRequest(client *http.Client) error {
     - 패킷이 나갈 때 로직을 트리거하려면 특정 인터페이스에 clsact qdisc(queueing discipline)를 붙이고 여기에 tc egress로 필터를 추가
   - 공격자 파드가 authorization server 파드로 대규모 커넥션 요청을 하면 이는 DDoS에 해당하므로 차단해야 하는 상황
   - 보호하고자 하는 파드와 최대 요청 가능 횟수는 eBPF 유저모드에서 전달받는다.
-  - 참고로, 파드에서 오는 패킷이 아니라 노드 밖에서 오는 패킷에 대해 XDP(eXpress Data Path)로 처리한다면 패킷이 메모리에 올라가기 전이므로 훨씬 더 빠르게 로직을 실행할 수 있다.
-  - 하지만, tc는 범용적이고 NetworkPolicy, ServiceLB, NAT 등을 구현하기 쉽지만 XDP는 구현 복잡도가 높아 단순하지만 높은 성능을 요구하는 경우(예를 들어 DDoS 필터)에 주로 쓰인다.
+  - 참고로, 파드에서 오는 패킷이 아니라 노드 밖에서 오는 패킷이라면 XDP(eXpress Data Path)를 고려해볼 수 있는데 XDP는 패킷이 메모리에 올라가기 전이므로 속도가 매우 빠르다.
+  - 하지만, tc는 범용적이고 NetworkPolicy, ServiceLB, NAT 등 복잡한 기능을 구현하기 쉽지만 XDP는 구현 복잡도가 높아 DDoS 필터나 LB fast path 등 단순하지만 높은 성능이 필요한 경우에 주로 쓰인다.
 
 ```c
 // target_ip가 보호하고자 하는 파드의 IP이다.
