@@ -62,6 +62,7 @@ ip link
     - pinned BFP maps, pinned BPF programs 저장
   - hostPath /sys/kernel/debug
     - bpf_printk 출력 확인
+    
 ```yaml
 apiVersion: apps/v1
 kind: DaemonSet
