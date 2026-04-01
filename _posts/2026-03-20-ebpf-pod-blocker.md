@@ -55,30 +55,21 @@ ip link
 ```
 
 ## eBPF DaemonSet 구성
-  - eBPF 프로그램을 파드에서 실행하기 위해 호스트의 리소스에 접근해야 할 필요가 있다. 
+  - privileged: true
+    - 컨테이너를 호스트 root처럼 실행
   - hostNetwork: true
-    - attach 대상 인터페이스가 host namespace에 있기 때문에 필요하다.
+    - attach 대상 인터페이스가 host namespace에 있다.
   - hostPath /sys/fs/bpf
     - pinned BFP maps, pinned BPF programs 저장
   - hostPath /sys/kernel/debug
     - bpf_printk 출력 확인
-    
+
 ```yaml
 apiVersion: apps/v1
 kind: DaemonSet
-metadata:
-  name: pod-blocker
-  namespace: pod-blocker-system
-spec:
-  selector:
-    matchLabels:
-      app: pod-blocker
-  template:
-    metadata:
-      labels:
-        app: pod-blocker
+# ...
     spec:
-      serviceAccountName: pod-blocker
+# ...
       hostNetwork: true
       hostPID: true
       nodeSelector:
@@ -86,20 +77,10 @@ spec:
       tolerations:
         - operator: Exists
       containers:
-        - name: pod-blocker
-          image: ythwork/pod-blocker:0.0.1
-          imagePullPolicy: IfNotPresent
+# ...
           securityContext:
             privileged: true
-          env:
-            - name: MY_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: TARGET_NAMESPACE
-              value: auth
-            - name: LABEL_SELECTOR
-              value: app=authorization-server
+# ...
           volumeMounts:
             - name: bpffs
               mountPath: /sys/fs/bpf
