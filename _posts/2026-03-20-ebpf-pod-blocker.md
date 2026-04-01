@@ -56,7 +56,8 @@ ip link
 
 ## eBPF DaemonSet 구성
   - privileged: true
-    - 컨테이너를 호스트 root처럼 실행
+    - 컨테이너를 호스트 root 권한으로 실행한다.
+    - 없으면 eBPF 로드, tc attach, interface 접근 등을 실패한다.
   - hostNetwork: true
     - attach 대상 인터페이스가 host namespace에 있다.
   - hostPath /sys/fs/bpf
