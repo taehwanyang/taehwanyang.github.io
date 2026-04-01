@@ -11,6 +11,7 @@ date: 2026-03-20
     - count_conn_and_drop.c
   - 유저모드에서 동작하는 Go 프로그램은 패킷 드롭을 트리거하는 제한 조건을 커널모드로 전달하고 tc hook을 보호하려는 파드의 호스트 veth 인터페이스에 추가한다.
     - create_tc_hook_and_show_drop_log.go
+  - 호스트에서 eBPF 프로그램을 실행해도 되지만 일반적으로 쿠버네티스 클러스터에서는 DaemonSet으로 실행합니다. 이러한 방식은 클라우드 쿠버네티스에도 유효한 전략으로 AKS나 EKS 모두 지원합니다. cilium을 비롯해 Datadog의 에이전트, Falco, Pixie도 모두 DaemonSet으로 실행됩니다.
 
 ## 깃헙 레포지토리
   - [eBPF Pod Blocker](https://github.com/taehwanyang/ebpf-pod-blocker)
@@ -51,6 +52,79 @@ ip link
     link/ether 1a:fc:43:c1:9c:b4 brd ff:ff:ff:ff:ff:ff
 4: cni0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1450 qdisc noqueue state UP mode DEFAULT group default qlen 1000
     link/ether 4a:68:33:43:05:84 brd ff:ff:ff:ff:ff:ff
+```
+
+## eBPF DaemonSet 구성
+  - eBPF 프로그램을 파드에서 실행하기 위해 호스트의 리소스에 접근해야 할 필요가 있다. 
+  - hostNetwork: true
+    - attach 대상 인터페이스가 host namespace에 있기 때문에 필요하다.
+  - hostPath /sys/fs/bpf
+    - pinned BFP maps, pinned BPF programs 저장
+  - hostPath /sys/kernel/debug
+    - bpf_printk 출력 확인
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: pod-blocker
+  namespace: pod-blocker-system
+spec:
+  selector:
+    matchLabels:
+      app: pod-blocker
+  template:
+    metadata:
+      labels:
+        app: pod-blocker
+    spec:
+      serviceAccountName: pod-blocker
+      hostNetwork: true
+      hostPID: true
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: pod-blocker
+          image: ythwork/pod-blocker:0.0.1
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: TARGET_NAMESPACE
+              value: auth
+            - name: LABEL_SELECTOR
+              value: app=authorization-server
+          volumeMounts:
+            - name: bpffs
+              mountPath: /sys/fs/bpf
+            - name: debugfs
+              mountPath: /sys/kernel/debug
+            - name: lib-modules
+              mountPath: /lib/modules
+              readOnly: true
+            - name: host-proc
+              mountPath: /host/proc
+              readOnly: true
+      volumes:
+        - name: bpffs
+          hostPath:
+            path: /sys/fs/bpf
+            type: DirectoryOrCreate
+        - name: debugfs
+          hostPath:
+            path: /sys/kernel/debug
+            type: DirectoryOrCreate
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+        - name: host-proc
+          hostPath:
+            path: /proc
 ```
 
 ## 구현 상세
