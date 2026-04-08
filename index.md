@@ -12,7 +12,7 @@ title: Home
 ## ✍️ Recent Posts
 
 - [ebpf로 Pod Blocker 구현해보기](https://taehwanyang.github.io/ebpf-pod-blocker)
-- [Event-driven Architecture](https://taehwanyang.github.io/event-driven)
+- [Event-driven으로 ecommerce 구현해보기](https://taehwanyang.github.io/event-driven)
 
 ---
 
