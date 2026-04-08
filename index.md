@@ -5,7 +5,7 @@ title: Home
 
 # 👋 양태환의 기술 블로그
 
-> Kubernetes · eBPF · Machine Learning
+> Backend · Software Architecture · Kubernetes · eBPF · Machine Learning
 
 ---
 
@@ -26,4 +26,4 @@ title: Home
 ## 📌 Note
 
 이 블로그는  
-**쿠버네티스, eBPF, 머신러닝**에 대한 개인적인 생각, 관점에 대해 기록합니다.
+**백엔드, 소프트웨어 아키텍처, 쿠버네티스, eBPF, 머신러닝**에 대한 개인적인 생각, 관점에 대해 기록합니다.
