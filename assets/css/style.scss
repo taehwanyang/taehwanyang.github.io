@@ -144,13 +144,7 @@ small, .post-meta {
 }
 
 footer {
-  float: none !important;
-  width: min(1100px, calc(100vw - 48px));
-  max-width: 100%;
-  margin: 0 auto;
-  padding: 0 0 40px 0;
-  color: #6b6b6b;
-  box-sizing: border-box;
+  display: none !important;
 }
 
 @media print, screen and (max-width: 768px) {
