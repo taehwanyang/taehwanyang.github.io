@@ -14,7 +14,7 @@ date: 2026-04-08
     - 이벤트의 상태를 저장하므로 갑자기 서버가 죽어도 이후에 이벤트의 상태를 조회해서 알맞게 처리할 수 있습니다.
 
 ## 깃헙 레포지토리
-  - [Event-driven Architecture](https://github.com/taehwanyang/ecommerce-example)
+  - [DDD로 구현된 모듈러 모놀리스 Ecommerce Example](https://github.com/taehwanyang/ecommerce-example)
 
 ## 개발 스택
   - Java : Spring Boot
