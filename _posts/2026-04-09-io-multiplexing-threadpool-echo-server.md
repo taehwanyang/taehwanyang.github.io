@@ -1,6 +1,6 @@
 ---
-title: "Event-driven 아키텍처로 구현한 DDD 모듈러 모놀리스 애플리케이션"
-date: 2026-04-08
+title: "I/O Multiplexing Threadpool로 구현한 Echo Server"
+date: 2026-04-09
 ---
 
 ## 프로젝트 소개
