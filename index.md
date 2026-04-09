@@ -14,7 +14,7 @@ title: Home
 - [ebpf로 Pod Blocker 구현해보기](https://taehwanyang.github.io/ebpf-pod-blocker)
 - [Event-driven으로 ecommerce 구현해보기](https://taehwanyang.github.io/event-driven)
 - [I/O Multiplexing Threadpool로 Echo Server 구현해보기](https://taehwanyang.github.io/io-multiplexing-threadpool-echo-server)
-- [Server-Sent Events 구현해보기](https://github.com/taehwanyang/sse-example)
+- [Server-Sent Events 구현해보기](https://taehwanyang.github.io/sse-example)
 
 ---
 
