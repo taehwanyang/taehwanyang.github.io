@@ -19,7 +19,7 @@ date: 2026-04-09
     - 실시간 로그
     - AI 답변 스트리밍
 
-```http
+```sh
 Content-Type: text/event-stream
 Cache-Control: no-cache
 Connection: keep-alive
