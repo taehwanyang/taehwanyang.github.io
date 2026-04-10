@@ -213,7 +213,7 @@ kubectl apply -f  sse-example-ingress-api.yaml
 127.0.0.1       sse.ythwork.com
 ```
 
-  - 요청 URL만 sse.ythwork.com으로 변경하여 위 테스트와 동일하게 curl로 테스트한다.
+  - 요청 URL만 sse.ythwork.com으로 변경하여 테스트한다.
 
 ```shell
 curl -N http://sse.ythwork.com/subscribe
