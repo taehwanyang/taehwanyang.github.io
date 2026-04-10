@@ -61,7 +61,7 @@ data: client connected
 docker run --name local-redis -p 6379:6379 -d redis:7
 ```
 
-## 테스트
+## 테스트 : 클라이언트로 브라우저 이용
 
 ### 인스턴스 2개 실행
   - 인스턴스 1은 8080에서 실행
@@ -84,6 +84,32 @@ docker run --name local-redis -p 6379:6379 -d redis:7
 curl -X POST http://localhost:8080/notifications/broadcast \
   -H "Content-Type: application/json" \
   -d '{"message":"hello from 8080"}'
+```
+
+## 테스트 : 클라이언트로 curl 이용
+
+### 인스턴스 1개 실행
+
+```shell
+./gradlew bootRun
+```
+
+### 구독(SSE 연결)
+
+  - 터미널을 2개 연다.
+  - 두개의 터미널에서 curl로 SSE 연결
+```shell
+curl -N http://localhost:8080/subscribe
+```
+
+### 다른 터미널에서 이벤트 발생
+  - 터미널을 연다.
+  - 터미널에서 이벤트 발생
+
+```shell
+curl -X POST http://localhost:8080/notifications/broadcast \
+  -H "Content-Type: application/json" \
+  -d '{"message":"hello"}'
 ```
 
 ## 구현 상세
