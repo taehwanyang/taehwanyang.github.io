@@ -112,6 +112,83 @@ curl -X POST http://localhost:8080/notifications/broadcast \
   -d '{"message":"hello"}'
 ```
 
+## 쿠버네티스 운영시 주의할 점
+  - 쿠버네티스에 애플리케이션을 파드로 올린다면 앞단에 nginx ingress controller가 있거나 Azure의 경우 애플리케이션 게이트웨이가 있을 것이다.
+
+### Nginx Ingress Controller의 경우
+  - 이때는 ingress를 일반 API와 SSE로 나누어야 한다.
+  - 일반 API용 Ingress
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: sseexample.ythwork.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: sse-example
+                port:
+                  number: 8080
+```
+
+  - SSE 전용 Ingress
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sse-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: sseexample.ythwork.com
+      http:
+        paths:
+          - path: /subscribe
+            pathType: Prefix
+            backend:
+              service:
+                name: sse-example
+                port:
+                  number: 8080
+```
+
+  - nginx 설정은 아래와 같이 될 것이다.
+
+```sh
+location /api {
+    proxy_pass ...
+}
+
+location /subscribe {
+    proxy_buffering off;
+    proxy_read_timeout 3600;
+}
+```
+
+  - Spring에는 아래와 같이 헤더를 추가한다.
+
+```java
+@GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+public SseEmitter subscribe(HttpServletResponse response) {
+    response.setHeader("Cache-Control", "no-cache");
+    response.setHeader("X-Accel-Buffering", "no");
+    return sseService.subscribe();
+}
+``` 
+
 ## 구현 상세
 
   - 클라이언트로 보낼 DTO
