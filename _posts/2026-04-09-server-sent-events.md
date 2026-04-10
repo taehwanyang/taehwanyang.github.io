@@ -219,6 +219,12 @@ kubectl apply -f  sse-example-ingress-api.yaml
 curl -N http://sse.ythwork.com/subscribe
 ```
 
+```shell
+curl -X POST http://sse.ythwork.com/notifications/broadcast \
+  -H "Content-Type: application/json" \
+  -d '{"message":"hello"}'
+```
+
 ## 구현 상세
 
   - 클라이언트로 보낼 DTO
