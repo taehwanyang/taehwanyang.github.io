@@ -189,6 +189,36 @@ public SseEmitter subscribe(HttpServletResponse response) {
 }
 ``` 
 
+## 테스트 : nginx ingress controller가 있을 때
+  - 쿠버네티스에 파드로 애플리케이션을 배포한다면 클라이언트와 서버 사이에 nginx ingress controller가 있다.
+  - 이 경우 nginx가 데이터를 모았다가 보낼 수도 있음.
+  - 이 경우 sse 엔드포인트와 일반 API ingress를 분리한다.
+  - 레디스와 sse-example 애플리케이션을 배포
+
+```shell
+cd k8s
+kubectl apply -f redis-deployment.yaml
+kubectl apply -f redis-service.yaml
+
+kubectl apply -f sse-example-deploy.yaml
+kubectl apply -f sse-example-service.yaml
+kubectl apply -f sse-example-ingress-sse.yaml
+kubectl apply -f  sse-example-ingress-api.yaml
+```
+
+  - 쿠버네티스에 배포된 ingress controller가 nginx라고 가정한다.
+  - /etc/hosts에 도메인을 추가한다.
+
+```shell
+127.0.0.1       sse.ythwork.com
+```
+
+  - 요청 URL만 sse.ythwork.com으로 변경하여 위 테스트와 동일하게 curl로 테스트한다.
+
+```shell
+curl -N http://sse.ythwork.com/subscribe
+```
+
 ## 구현 상세
 
   - 클라이언트로 보낼 DTO
