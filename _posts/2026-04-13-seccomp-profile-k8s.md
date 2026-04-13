@@ -19,6 +19,9 @@ date: 2026-04-13
 ## 프로젝트 소개
   - Spring Boot 애플리케이션을 위한 커스텀 seccomp 프로파일을 작성하고 Deployment에 적용해본다.
 
+## 깃헙 레포지토리
+  - [Spring Boot Application을 위한 seccomp profile을 Deployment에 적용](https://github.com/taehwanyang/helm-auth-servers)
+
 ## 🔥 seccomp profile 생성
   - kubernetes의 Deployment에 seccomp 프로파일을 적용
 
