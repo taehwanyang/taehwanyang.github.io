@@ -16,6 +16,7 @@ title: Home
 - [I/O Multiplexing Threadpool로 Echo Server 구현해보기](https://taehwanyang.github.io/io-multiplexing-threadpool-echo-server)
 - [Server-Sent Events 구현해보기](https://taehwanyang.github.io/server-sent-events)
 - [OAuth2 그랜트 유형](https://taehwanyang.github.io/oauth2)
+- [쿠버네티스에 Spring Boot 애플리케이션을 위한 seccomp 프로파일 적용해보기](https://taehwanyang.github.io/seccomp-profile-k8s)
 
 ---
 
